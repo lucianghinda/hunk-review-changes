@@ -41,6 +41,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "kramdown", "~> 2.4"
   spec.add_dependency "kramdown-parser-gfm", "~> 1.1"
   spec.add_dependency "puma", ">= 6.0", "< 9.0"
+  # Sinatra 4 no longer bundles a Rack server handler; App.run! exits with a
+  # "gems weren't found" warning unless Rackup::Handler is available.
+  spec.add_dependency "rackup", "~> 2.1"
   spec.add_dependency "rouge", "~> 4.0"
   spec.add_dependency "sinatra", "~> 4.0"
 end

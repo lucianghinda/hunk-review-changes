@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "socket"
+require "rbconfig"
 
 require_relative "app"
 require_relative "bundle"
@@ -51,7 +52,21 @@ module HunkReviewChanges
 
       Thread.new do
         sleep 1.0
-        system("open", url, out: File::NULL, err: File::NULL)
+        launch_browser(url)
+      end
+    end
+
+    def launch_browser(target)
+      system(*browser_command, target, out: File::NULL, err: File::NULL)
+    end
+
+    # The platform's "open this in the default handler" launcher. macOS `open` is
+    # absent on Linux and Windows, where the gem and its agents also run.
+    def browser_command(host_os = RbConfig::CONFIG["host_os"])
+      case host_os
+      when /darwin/ then ["open"]
+      when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", ""]
+      else ["xdg-open"]
       end
     end
 

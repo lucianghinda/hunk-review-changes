@@ -194,16 +194,22 @@
         `${reviewed} of ${TOTAL} reviewed · ${change} to change · ${flag} flagged`;
     }
 
+    // In-flight save requests, so Done can wait for every save to land before it
+    // asks the server to write the export.
+    const inflight = new Set();
+
     async function save(id) {
       const section = document.querySelector(`[data-piece="${id}"]`);
       const comment = document.querySelector(`[data-comment="${id}"]`).value;
       const flag = document.querySelector(`[data-flag="${id}"]`).checked;
       const reviewed = section.dataset.reviewed === "true";
-      await fetch(`/pieces/${id}`, {
+      const request = fetch(`/pieces/${id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment, flag, reviewed })
-      });
+      }).finally(() => inflight.delete(request));
+      inflight.add(request);
+      await request;
       const saved = document.querySelector(`[data-saved="${id}"]`);
       if (saved) { saved.style.opacity = 1; setTimeout(() => saved.style.opacity = 0, 1200); }
     }
@@ -305,6 +311,11 @@
       let unreviewed = sections.filter(s => statusOf(s) === "unreviewed").length;
       if (unreviewed > 0 && !confirm(`${unreviewed} piece(s) not yet reviewed. Finish anyway?`)) return;
       clearInterval(heartbeat);
+      // Fire any debounced-but-unsent comment saves now, then wait for every save
+      // to land before /done writes the export — otherwise a comment still in
+      // flight (debounce timer or blur) can be missing from export.md.
+      for (const id of Object.keys(timers)) { clearTimeout(timers[id]); delete timers[id]; save(id); }
+      await Promise.allSettled([...inflight]);
       await fetch("/done", { method: "POST" });
       document.getElementById("done-overlay").classList.remove("hidden");
     });

@@ -12,7 +12,23 @@ module HunkReviewChanges
         bundle.pieces.each { |p| state.update(p["id"], comment: "", flag: false, reviewed: true) }
         md = Export.new(bundle, state).to_markdown
         assert_includes md, "No changes requested"
+        assert_includes md, "every piece was reviewed"
         refute_includes md, "## Piece"
+      end
+    end
+
+    def test_unreviewed_pieces_are_not_reported_as_approved
+      with_sample_bundle do |bundle, dir|
+        state = State.new(File.join(dir, "state.json"))
+        state.update(1, comment: "", flag: false, reviewed: true) # ok
+        # piece 2 is left untouched -> unreviewed
+        md = Export.new(bundle, state).to_markdown
+
+        refute_includes md, "## Piece"
+        refute_includes md, "every piece was reviewed"
+        assert_includes md, "left unreviewed"
+        assert_includes md, "not approved"
+        assert_includes md, "2"
       end
     end
 

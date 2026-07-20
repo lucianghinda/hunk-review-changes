@@ -3,6 +3,7 @@
 require "sinatra/base"
 require "ipaddr"
 require "json"
+require "cgi"
 
 require_relative "markdown"
 require_relative "diff"
@@ -43,8 +44,11 @@ module HunkReviewChanges
 
     helpers do
       def bundle = settings.bundle
-      def state = State.new(settings.state_path)
-      def esc(str) = str.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+      def state = State.new(settings.state_path, bundle_id: bundle.fingerprint)
+      # Full HTML-entity escaping (incl. " and ') so values stay safe inside
+      # double-quoted attributes like title="..." and data-nav="...", not only
+      # in text nodes.
+      def esc(str) = CGI.escapeHTML(str.to_s)
     end
 
     get "/" do

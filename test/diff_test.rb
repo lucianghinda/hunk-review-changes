@@ -22,6 +22,17 @@ module HunkReviewChanges
       refute(rows.any? { |r| r.text.to_s.start_with?("diff --git", "index", "---", "+++") })
     end
 
+    def test_keeps_hunk_lines_that_look_like_file_headers
+      # Inside a hunk, a deleted "-- x" reads "--- x" and an added "++ x" reads
+      # "+++ x"; both are real content, not file headers, and must survive.
+      diff = "@@ -1,2 +1,2 @@\n keep\n--- sql comment\n+++ sql added\n"
+      rows = Diff.parse(diff)
+      del = rows.find { |r| r.kind == :del }
+      add = rows.find { |r| r.kind == :add }
+      assert_equal "-- sql comment", del.text
+      assert_equal "++ sql added", add.text
+    end
+
     def test_multiple_hunks_in_one_piece
       diff = "@@ -1,2 +1,2 @@\n-a\n+b\n@@ -10,2 +10,2 @@\n-c\n+d\n"
       rows = Diff.parse(diff)

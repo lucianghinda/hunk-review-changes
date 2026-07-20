@@ -38,6 +38,18 @@ module HunkReviewChanges
       assert_match(/no bundle given/, err)
     end
 
+    def test_invalid_option_value_is_a_handled_error
+      # --port nope raises OptionParser::ParseError -> handled error, not a stack trace.
+      err = capture_stderr { assert_equal 1, CLI.start(["--port", "nope"]) }
+      assert_match(/hunk-review-changes:/, err)
+      assert_match(/invalid argument/, err)
+    end
+
+    def test_install_unknown_agent_fails
+      err = capture_stderr { assert_equal 1, CLI.start(["install", "--agent", "codez"]) }
+      assert_match(/unknown agent/, err)
+    end
+
     def capture_stderr
       original = $stderr
       $stderr = StringIO.new
