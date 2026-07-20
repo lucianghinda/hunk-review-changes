@@ -56,17 +56,20 @@ module HunkReviewChanges
       end
     end
 
-    def launch_browser(target)
-      system(*browser_command, target, out: File::NULL, err: File::NULL)
+    def launch_browser(url)
+      opened = system(*browser_command(url), out: File::NULL, err: File::NULL)
+      # A failed launch is recoverable — announce already printed the URL — so warn
+      # rather than crash. `system` returns false (bad exit) or nil (missing command).
+      warn "Could not open a browser automatically. Open #{url} to start the review." unless opened
     end
 
-    # The platform's "open this in the default handler" launcher. macOS `open` is
+    # The argv that opens `url` in the platform's default browser. macOS `open` is
     # absent on Linux and Windows, where the gem and its agents also run.
-    def browser_command(host_os = RbConfig::CONFIG["host_os"])
+    def browser_command(url, host_os: RbConfig::CONFIG["host_os"])
       case host_os
-      when /darwin/ then ["open"]
-      when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", ""]
-      else ["xdg-open"]
+      when /darwin/ then ["open", url]
+      when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", "", url]
+      else ["xdg-open", url]
       end
     end
 

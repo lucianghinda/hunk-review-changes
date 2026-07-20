@@ -214,14 +214,29 @@
       if (saved) { saved.style.opacity = 1; setTimeout(() => saved.style.opacity = 0, 1200); }
     }
 
+    // Persist a piece during page unload, where an async fetch can't be awaited:
+    // sendBeacon queues the POST so a comment typed within the debounce window (its
+    // timer not yet fired) still reaches state.json before the tab goes away.
+    function beaconSave(id) {
+      const section = document.querySelector(`[data-piece="${id}"]`);
+      if (!section) return;
+      const comment = document.querySelector(`[data-comment="${id}"]`).value;
+      const flag = document.querySelector(`[data-flag="${id}"]`).checked;
+      const reviewed = section.dataset.reviewed === "true";
+      const body = new Blob([JSON.stringify({ comment, flag, reviewed })], { type: "application/json" });
+      navigator.sendBeacon(`/pieces/${id}`, body);
+    }
+
     // --- wiring ---------------------------------------------------------------
+    // timers holds only genuinely-pending debounced saves: each timer removes its own
+    // entry when it fires, so Done and pagehide can tell what still needs flushing.
     let timers = {};
     document.querySelectorAll("[data-comment]").forEach(el => {
       const id = el.dataset.comment;
       el.addEventListener("input", () => {
         paintPiece(el.closest("[data-piece]"));
         clearTimeout(timers[id]);
-        timers[id] = setTimeout(() => save(id), 500);
+        timers[id] = setTimeout(() => { delete timers[id]; save(id); }, 500);
       });
       el.addEventListener("blur", () => save(id));
     });
@@ -305,7 +320,11 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) fetch("/heartbeat", { method: "POST" });
     });
-    window.addEventListener("pagehide", () => navigator.sendBeacon("/bye"));
+    window.addEventListener("pagehide", () => {
+      // Flush any comment still inside its debounce window, then say goodbye.
+      for (const id of Object.keys(timers)) beaconSave(id);
+      navigator.sendBeacon("/bye");
+    });
 
     document.getElementById("done-btn").addEventListener("click", async () => {
       let unreviewed = sections.filter(s => statusOf(s) === "unreviewed").length;

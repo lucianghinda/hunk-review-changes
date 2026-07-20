@@ -14,3 +14,8 @@
   explicit per-hunk "Looks good" reviewed state, and `j`/`k`/`c`/`g`/`?` keyboard
   navigation.
 - Bundles are validated on launch with actionable error messages.
+- Fix comment loss on exit: a comment typed within the 500ms autosave window is now
+  flushed before Done writes the export, and persisted with `navigator.sendBeacon`
+  when the tab is closed.
+- Open the browser on Linux and Windows too (`xdg-open` / `start`), not just macOS,
+  and warn with the review URL instead of failing silently when no browser launches.
