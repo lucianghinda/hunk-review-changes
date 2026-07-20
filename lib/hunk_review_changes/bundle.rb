@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "json"
+require "digest"
 
 module HunkReviewChanges
   # Loads and validates a bundle.json written by the companion skill. Validation
@@ -32,6 +33,10 @@ module HunkReviewChanges
     def framing = data["framing"]
     def pieces = data["pieces"]
     def dir = File.dirname(File.expand_path(path))
+
+    # Stable identity for this bundle's content, used to scope persisted review
+    # state so a reused directory never replays another bundle's comments.
+    def fingerprint = Digest::SHA256.hexdigest(JSON.generate(data))
 
     def validate!
       raise Error, "bundle must be a JSON object with a \"pieces\" array" unless data.is_a?(Hash)

@@ -80,6 +80,12 @@ module HunkReviewChanges
       assert_equal [:claude], selected.map(&:key)
     end
 
+    def test_runner_rejects_unknown_explicit_agent
+      runner = Installer::Runner.new(repo: "x", only: ["codez"], output: StringIO.new, input: StringIO.new)
+      error = assert_raises(CLI::Error) { runner.run }
+      assert_match(/unknown agent/, error.message)
+    end
+
     def test_claude_adapter_fails_without_cli_but_does_not_raise
       # No `claude` on PATH in CI; install! should return a failure Result, not raise.
       adapter = Installer::ClaudeCode.new

@@ -19,7 +19,7 @@ module HunkReviewChanges
 
     def self.start(argv)
       new.run(argv)
-    rescue Bundle::Error, Error => e
+    rescue Bundle::Error, Error, OptionParser::ParseError => e
       warn "hunk-review-changes: #{e.message}"
       1
     end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "socket"
+require "rbconfig"
 
 require_relative "app"
 require_relative "bundle"
@@ -51,7 +52,24 @@ module HunkReviewChanges
 
       Thread.new do
         sleep 1.0
-        system("open", url, out: File::NULL, err: File::NULL)
+        launch_browser(url)
+      end
+    end
+
+    def launch_browser(url)
+      opened = system(*browser_command(url), out: File::NULL, err: File::NULL)
+      # A failed launch is recoverable — announce already printed the URL — so warn
+      # rather than crash. `system` returns false (bad exit) or nil (missing command).
+      warn "Could not open a browser automatically. Open #{url} to start the review." unless opened
+    end
+
+    # The argv that opens `url` in the platform's default browser. macOS `open` is
+    # absent on Linux and Windows, where the gem and its agents also run.
+    def browser_command(url, host_os: RbConfig::CONFIG["host_os"])
+      case host_os
+      when /darwin/ then ["open", url]
+      when /mswin|mingw|cygwin/ then ["cmd", "/c", "start", "", url]
+      else ["xdg-open", url]
       end
     end
 

@@ -79,5 +79,21 @@ module HunkReviewChanges
         assert_match(/label/, error.message)
       end
     end
+
+    def test_fingerprint_is_stable_for_the_same_content
+      with_sample_bundle do |bundle, dir|
+        reloaded = Bundle.load(File.join(dir, "bundle.json"))
+        assert_equal bundle.fingerprint, reloaded.fingerprint
+      end
+    end
+
+    def test_fingerprint_changes_with_content
+      Dir.mktmpdir do |dir|
+        piece = { "id" => 1, "file" => "a.rb", "label" => "x", "diff" => "@@ -1 +1 @@\n-a\n+b\n" }
+        one = Bundle.load(write_bundle(dir, { "pieces" => [piece] }))
+        two = Bundle.load(write_bundle(dir, { "pieces" => [piece.merge("label" => "y")] }))
+        refute_equal one.fingerprint, two.fingerprint
+      end
+    end
   end
 end

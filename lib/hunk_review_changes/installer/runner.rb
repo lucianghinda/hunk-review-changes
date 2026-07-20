@@ -28,7 +28,12 @@ module HunkReviewChanges
       end
 
       def run
-        selected = @only ? by_keys(@only) : prompt
+        if @only
+          ensure_known!(@only)
+          selected = by_keys(@only)
+        else
+          selected = prompt
+        end
         if selected.empty?
           @output.puts "Nothing selected — no changes made."
           return []
@@ -44,6 +49,17 @@ module HunkReviewChanges
       end
 
       private
+
+      # An explicit --agent list naming an unknown agent must fail loudly: otherwise
+      # it selects nothing, "installs" nothing, and still exits 0 as if it worked.
+      def ensure_known!(keys)
+        known = @adapters.map(&:key)
+        unknown = Array(keys).flat_map { |k| expand(k) }.uniq - known
+        return if unknown.empty?
+
+        raise CLI::Error, "unknown agent#{"s" if unknown.size > 1}: #{unknown.join(", ")}. " \
+                          "Valid agents: #{known.join(", ")} (or 'all')."
+      end
 
       def by_keys(keys)
         wanted = Array(keys).flat_map { |k| expand(k) }.uniq

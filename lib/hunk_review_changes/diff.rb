@@ -2,6 +2,7 @@
 
 require "rouge"
 require "diff/lcs"
+require "cgi"
 
 module HunkReviewChanges
   # Parses a unified-diff hunk and renders it as an HTML table with line-number
@@ -19,11 +20,18 @@ module HunkReviewChanges
 
     FORMATTER = Rouge::Formatters::HTML.new
 
-    # Metadata lines that carry no reviewable content; dropped before rendering.
+    # Metadata lines that carry no reviewable content; always dropped. None of these
+    # collide with an in-hunk content line, whose raw form always begins with +, -,
+    # or a space.
     SKIP_PREFIXES = [
-      "diff --git", "index ", "--- ", "+++ ", "new file", "deleted file",
+      "diff --git", "index ", "new file", "deleted file",
       "similarity", "rename ", "old mode", "new mode", "\\ No newline"
     ].freeze
+
+    # File header markers that DO collide with content once the line marker is added:
+    # a deleted "-- x" reads "--- x" and an added "++ x" reads "+++ x". Drop them only
+    # outside a hunk, where they are genuinely headers.
+    FILE_HEADER_PREFIXES = ["--- ", "+++ "].freeze
 
     # A single rendered diff line. :html is filled in lazily: word-diff for paired
     # modifications, Rouge highlighting for everything else.
@@ -38,35 +46,56 @@ module HunkReviewChanges
 
     def parse(diff_text)
       old_ln = new_ln = nil
+      in_hunk = false
       rows = []
       diff_text.to_s.each_line do |raw|
         line = raw.chomp
         if line.start_with?("@@")
-          if (m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/))
-            old_ln = m[1].to_i
-            new_ln = m[2].to_i
-          end
+          old_ln, new_ln = hunk_bounds(line, old_ln, new_ln)
+          in_hunk = true
           rows << Row.new(kind: :hunk, text: line)
           next
         end
-        next if SKIP_PREFIXES.any? { |prefix| line.start_with?(prefix) }
 
-        marker = line[0]
-        content = line.length > 1 ? line[1..] : ""
-        case marker
-        when "+"
-          rows << Row.new(kind: :add, new_ln: new_ln, text: content)
-          new_ln += 1 if new_ln
-        when "-"
-          rows << Row.new(kind: :del, old_ln: old_ln, text: content)
-          old_ln += 1 if old_ln
-        else # context (space marker or blank line)
-          rows << Row.new(kind: :ctx, old_ln: old_ln, new_ln: new_ln, text: content)
-          old_ln += 1 if old_ln
-          new_ln += 1 if new_ln
-        end
+        # A new file section ends the current hunk, so its ---/+++ lines are headers.
+        in_hunk = false if line.start_with?("diff --git")
+        next if skip_metadata?(line, in_hunk)
+
+        old_ln, new_ln = push_content(rows, line, old_ln, new_ln)
       end
       rows
+    end
+
+    # Line numbers the next content line starts from, read off the @@ header.
+    def hunk_bounds(line, old_ln, new_ln)
+      return [old_ln, new_ln] unless (m = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/))
+
+      [m[1].to_i, m[2].to_i]
+    end
+
+    # File-metadata lines are dropped; the ---/+++ pair only outside a hunk, where it
+    # is a real header rather than an added/deleted line that happens to start with +/-.
+    def skip_metadata?(line, in_hunk)
+      return true if SKIP_PREFIXES.any? { |prefix| line.start_with?(prefix) }
+
+      !in_hunk && FILE_HEADER_PREFIXES.any? { |prefix| line.start_with?(prefix) }
+    end
+
+    # Append the add/del/context row for a content line and return the advanced
+    # [old_ln, new_ln] cursor (nil bounds stay nil).
+    def push_content(rows, line, old_ln, new_ln)
+      content = line.length > 1 ? line[1..] : ""
+      case line[0]
+      when "+"
+        rows << Row.new(kind: :add, new_ln: new_ln, text: content)
+        [old_ln, new_ln && (new_ln + 1)]
+      when "-"
+        rows << Row.new(kind: :del, old_ln: old_ln, text: content)
+        [old_ln && (old_ln + 1), new_ln]
+      else # context (space marker or blank line)
+        rows << Row.new(kind: :ctx, old_ln: old_ln, new_ln: new_ln, text: content)
+        [old_ln && (old_ln + 1), new_ln && (new_ln + 1)]
+      end
     end
 
     # Find each run of deletions followed immediately by a run of additions and pair
@@ -170,7 +199,7 @@ module HunkReviewChanges
     end
 
     def esc(str)
-      str.to_s.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;")
+      CGI.escapeHTML(str.to_s)
     end
   end
 end

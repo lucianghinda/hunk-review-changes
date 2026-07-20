@@ -14,7 +14,7 @@ module HunkReviewChanges
       actionable = @bundle.pieces.select { |piece| State.actionable?(@state[piece["id"]]) }
 
       if actionable.empty?
-        lines << "_No changes requested — every piece was reviewed and left as-is._"
+        lines << no_changes_note
         return "#{lines.join("\n").strip}\n"
       end
 
@@ -26,6 +26,18 @@ module HunkReviewChanges
     end
 
     private
+
+    # No piece needs action, but "reviewed and left as-is" and "never looked at" are
+    # different signals to the agent — the UI lets the user finish with pieces still
+    # unreviewed, and those must not read as approval.
+    def no_changes_note
+      unreviewed = @bundle.pieces.select { |piece| State.status_for(@state[piece["id"]]) == "unreviewed" }
+      return "_No changes requested — every piece was reviewed and left as-is._" if unreviewed.empty?
+
+      ids = unreviewed.map { |piece| piece["id"] }.join(", ")
+      "_No changes requested, but #{unreviewed.size} of #{@bundle.pieces.size} piece(s) were left " \
+        "unreviewed (skipped, not approved): #{ids}. Treat them as pending, not accepted._"
+    end
 
     def header
       lines = ["# Hunk review — #{@bundle.target}"]
