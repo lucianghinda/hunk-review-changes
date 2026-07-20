@@ -1,0 +1,27 @@
+{
+  "target": "feature/venue-guard vs main",
+  "resolved_by": "git diff main...HEAD",
+  "framing": "Add a nil-venue guard to `ShiftBooking#call` and cover it with a spec.",
+  "pieces": [
+    {
+      "id": 1,
+      "file": "app/services/shift_booking.rb",
+      "label": "guard against a nil venue",
+      "kind": "code",
+      "what": "Returns early with `Result.failure(:missing_venue)` when the shift has no venue, instead of calling `.timezone` on `nil`. Truth table:\n\n- venue present -> books normally\n- `shift.venue` is `nil` -> `Result.failure(:missing_venue)`, no `Booking` row",
+      "why": "Bookings for archived shifts were raising `NoMethodError` on `nil.timezone` in production. This converts the crash into a handled failure the caller can branch on.",
+      "flags": ["inference: the exact production incident is assumed, not confirmed in the diff", "reads `shift.venue`, not `shift.venue_id` — one extra association load"],
+      "diff": "@@ -8,6 +8,11 @@ class ShiftBooking\n   def call\n     shift = Shift.find(@shift_id)\n+    if shift.venue.nil?\n+      return Result.failure(:missing_venue)\n+    end\n+\n     tz = shift.venue.timezone\n     Booking.create!(shift: shift, worker: @worker, timezone: tz)\n   end\n"
+    },
+    {
+      "id": 2,
+      "file": "spec/services/shift_booking_spec.rb",
+      "label": "spec for the missing-venue path",
+      "kind": "test",
+      "what": "Asserts that booking a shift with no venue returns a :missing_venue failure and creates no Booking row.",
+      "why": "Locks in the new guard so a future refactor cannot silently reintroduce the crash.",
+      "flags": [],
+      "diff": "@@ -20,6 +20,13 @@ RSpec.describe ShiftBooking do\n     end\n   end\n \n+  context \"when the shift has no venue\" do\n+    let(:shift) { create(:shift, venue: nil) }\n+\n+    it \"fails without creating a booking\" do\n+      expect { described_class.new(shift.id, worker).call }.not_to change(Booking, :count)\n+    end\n+  end\n end\n"
+    }
+  ]
+}

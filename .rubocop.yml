@@ -1,0 +1,69 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "vendor/**/*"
+    - "tmp/**/*"
+
+# Prose and docs, not code.
+Style/Documentation:
+  Enabled: false
+
+# The DSL-ish endless methods and helpers read fine well past the defaults here.
+Metrics/MethodLength:
+  Max: 30
+Metrics/AbcSize:
+  Max: 30
+Metrics/ClassLength:
+  Max: 160
+Metrics/ModuleLength:
+  Max: 150
+Metrics/CyclomaticComplexity:
+  Max: 12
+Metrics/PerceivedComplexity:
+  Max: 12
+
+Metrics/BlockLength:
+  Exclude:
+    - "test/**/*"
+    - "*.gemspec"
+    - "lib/hunk_review_changes/app.rb" # Sinatra route DSL block
+
+# HTML/CSS string building is clearer slightly wider.
+Layout/LineLength:
+  Max: 110
+  Exclude:
+    - "test/**/*"
+
+Style/StringConcatenation:
+  Enabled: false
+
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# We build HTML with heredocs and interpolation on purpose.
+Lint/UselessAssignment:
+  Enabled: true
+
+Naming/MethodParameterName:
+  AllowedNames: [f, o, n, id, io]
+
+# `!!x` is a deliberate, readable boolean coercion for persisted flags.
+Style/DoubleNegation:
+  Enabled: false
+
+# Tests intentionally read and restore ENV["HOME"] to sandbox installs.
+Style/EnvHome:
+  Exclude:
+    - "test/**/*"
+Style/FetchEnvVar:
+  Exclude:
+    - "test/**/*"
+
+# Test names may end in a status code (e.g. _204).
+Naming/VariableNumber:
+  Exclude:
+    - "test/**/*"

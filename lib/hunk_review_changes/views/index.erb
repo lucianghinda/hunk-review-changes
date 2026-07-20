@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Review — <%= esc(@target) %></title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body class="h-full bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-200 antialiased">
+  <div class="flex h-full">
+
+    <!-- sidebar: browsable index of pieces -->
+    <aside class="hidden lg:flex lg:w-80 shrink-0 flex-col border-r border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+      <div class="px-5 py-4 border-b border-slate-200 dark:border-slate-800">
+        <div class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">Reviewing</div>
+        <div class="font-semibold text-sm break-words" title="<%= esc(@target) %>"><%= esc(@target) %></div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-1"><%= @pieces.size %> pieces</div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-2">
+        <% @pieces.each do |p| %>
+          <a href="#piece-<%= p[:id] %>" data-nav="<%= p[:id] %>"
+             class="group flex items-start gap-3 px-5 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 border-l-2 border-transparent">
+            <span id="dot-<%= p[:id] %>" data-dot
+                  class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full <%= { 'flag' => 'bg-rose-500', 'change' => 'bg-amber-400', 'ok' => 'bg-emerald-500' }.fetch(p[:status], 'bg-slate-300 dark:bg-slate-600') %>"></span>
+            <span class="min-w-0">
+              <span class="block text-xs text-slate-400 dark:text-slate-500">Piece <%= p[:id] %></span>
+              <span class="block text-sm text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white"><%= esc(p[:label]) %></span>
+              <span class="block text-xs font-mono text-slate-400 dark:text-slate-500 break-all"><%= esc(p[:file]) %></span>
+            </span>
+          </a>
+        <% end %>
+      </nav>
+      <div class="px-5 py-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-400 dark:text-slate-500">
+        Press <kbd class="font-mono">?</kbd> for keyboard shortcuts
+      </div>
+    </aside>
+
+    <!-- main column -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="sticky top-0 z-10 flex items-center gap-4 border-b border-slate-200 bg-white/90 backdrop-blur px-6 py-3 dark:border-slate-800 dark:bg-slate-900/90">
+        <div class="min-w-0">
+          <h1 class="font-semibold">Hunk review</h1>
+          <p class="text-xs font-mono text-slate-500 dark:text-slate-400 truncate"><%= esc(@resolved_by) %></p>
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+          <span id="counts" class="text-xs text-slate-500 dark:text-slate-400 tabular-nums"></span>
+          <button id="copy-btn"
+                  class="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+            Copy for LLM
+          </button>
+          <button id="done-btn"
+                  class="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
+            Done
+          </button>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto px-6 py-8">
+        <div class="mx-auto max-w-[1440px] space-y-10">
+          <% unless @framing.empty? %>
+            <div class="markdown text-[15px] leading-relaxed text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-5 py-4"><%= @framing %></div>
+          <% end %>
+
+          <% @pieces.each do |p| %>
+            <section id="piece-<%= p[:id] %>" data-piece="<%= p[:id] %>" data-reviewed="<%= p[:reviewed] %>"
+                     class="scroll-mt-24 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+                <span class="text-xs font-mono text-slate-400 dark:text-slate-500">Piece <%= p[:n] %></span>
+                <span class="text-[15px] font-semibold"><%= esc(p[:label]) %></span>
+                <span class="text-xs rounded px-2 py-0.5 <%= p[:kind] == 'test' ? 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300' : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300' %>"><%= esc(p[:kind]) %></span>
+                <span class="ml-auto text-xs font-mono text-slate-400 dark:text-slate-500 break-all"><%= esc(p[:file]) %></span>
+              </div>
+
+              <div class="px-6 py-4 space-y-2.5">
+                <% unless p[:what].empty? %>
+                  <div class="markdown text-[15px] leading-relaxed"><span class="font-bold text-slate-700 dark:text-slate-200">What it does — </span><%= p[:what] %></div>
+                <% end %>
+                <% unless p[:why].empty? %>
+                  <div class="markdown text-[15px] leading-relaxed"><span class="font-bold text-slate-700 dark:text-slate-200">Why it is here — </span><%= p[:why] %></div>
+                <% end %>
+                <% unless p[:flags].empty? %>
+                  <ul class="markdown text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 space-y-1 dark:text-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30">
+                    <% p[:flags].each do |f| %><li>⚠ <%= f %></li><% end %>
+                  </ul>
+                <% end %>
+              </div>
+
+              <div class="border-t border-slate-200 dark:border-slate-800 overflow-x-auto">
+                <%= p[:diff] %>
+              </div>
+
+              <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/40 space-y-3">
+                <textarea data-comment="<%= p[:id] %>" rows="2"
+                          placeholder="Comment — describe the change you want here, or leave blank and mark Looks good"
+                          class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-[14px] focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none dark:border-slate-700 dark:bg-slate-800"><%= esc(p[:comment]) %></textarea>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button data-review="<%= p[:id] %>"
+                          class="review-btn rounded-md border px-3 py-1.5 text-sm font-medium border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700">
+                    <span class="review-label">Looks good ✓</span>
+                  </button>
+                  <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                    <input type="checkbox" data-flag="<%= p[:id] %>" <%= p[:flagged] ? 'checked' : '' %>
+                           class="rounded border-slate-300 text-rose-600 focus:ring-rose-500 dark:border-slate-600 dark:bg-slate-800">
+                    Flag for discussion (do not implement yet)
+                  </label>
+                  <span data-saved="<%= p[:id] %>" class="ml-auto text-xs text-emerald-600 dark:text-emerald-400 opacity-0 transition-opacity">saved ✓</span>
+                </div>
+              </div>
+            </section>
+          <% end %>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- done overlay -->
+  <div id="done-overlay" class="hidden fixed inset-0 z-20 bg-slate-900/60 flex items-center justify-center">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl px-8 py-6 text-center shadow-xl max-w-sm">
+      <div class="text-3xl mb-2">✓</div>
+      <p class="font-semibold">Review saved.</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">You can close this tab and return to your agent — it will implement your comments.</p>
+    </div>
+  </div>
+
+  <!-- keyboard shortcuts overlay -->
+  <div id="help-overlay" class="hidden fixed inset-0 z-30 bg-slate-900/60 flex items-center justify-center" data-help>
+    <div class="bg-white dark:bg-slate-900 rounded-2xl px-8 py-6 shadow-xl max-w-xs w-full">
+      <div class="flex items-center justify-between mb-4">
+        <p class="font-semibold">Keyboard shortcuts</p>
+        <button data-help-close class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
+      </div>
+      <dl class="space-y-2 text-sm">
+        <div class="flex justify-between"><dt>Next piece</dt><dd><kbd class="font-mono">j</kbd></dd></div>
+        <div class="flex justify-between"><dt>Previous piece</dt><dd><kbd class="font-mono">k</kbd></dd></div>
+        <div class="flex justify-between"><dt>Comment on piece</dt><dd><kbd class="font-mono">c</kbd></dd></div>
+        <div class="flex justify-between"><dt>Toggle Looks good</dt><dd><kbd class="font-mono">g</kbd></dd></div>
+        <div class="flex justify-between"><dt>Leave comment box</dt><dd><kbd class="font-mono">Esc</kbd></dd></div>
+        <div class="flex justify-between"><dt>This help</dt><dd><kbd class="font-mono">?</kbd></dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <div id="toast" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 rounded-lg bg-slate-900 text-white text-sm px-4 py-2 shadow-lg dark:bg-slate-700"></div>
+
+  <script>
+    const TOTAL = <%= @pieces.size %>;
+    const dotClass = {
+      flag: "bg-rose-500",
+      change: "bg-amber-400",
+      ok: "bg-emerald-500",
+      unreviewed: "bg-slate-300 dark:bg-slate-600"
+    };
+    const reviewActive = "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/50";
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.remove("hidden");
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add("hidden"), 1900);
+    }
+
+    // Derive a piece's status the same way the server does, so the UI stays in sync
+    // without a round-trip: flag > change > ok > unreviewed.
+    function statusOf(section) {
+      const id = section.dataset.piece;
+      if (document.querySelector(`[data-flag="${id}"]`).checked) return "flag";
+      if (document.querySelector(`[data-comment="${id}"]`).value.trim() !== "") return "change";
+      if (section.dataset.reviewed === "true") return "ok";
+      return "unreviewed";
+    }
+
+    function paintPiece(section) {
+      const id = section.dataset.piece;
+      const status = statusOf(section);
+      const dot = document.getElementById(`dot-${id}`);
+      if (dot) dot.className = dot.className.replace(/bg-\S+(\s+dark:bg-\S+)?/, dotClass[status]);
+      const btn = document.querySelector(`[data-review="${id}"]`);
+      const reviewed = section.dataset.reviewed === "true";
+      reviewActive.split(" ").forEach(c => btn.classList.toggle(c, reviewed));
+      btn.querySelector(".review-label").textContent = reviewed ? "Reviewed ✓" : "Looks good ✓";
+      updateCounts();
+    }
+
+    function updateCounts() {
+      let reviewed = 0, change = 0, flag = 0;
+      document.querySelectorAll("[data-piece]").forEach(s => {
+        const st = statusOf(s);
+        if (st !== "unreviewed") reviewed++;
+        if (st === "change") change++;
+        if (st === "flag") flag++;
+      });
+      document.getElementById("counts").textContent =
+        `${reviewed} of ${TOTAL} reviewed · ${change} to change · ${flag} flagged`;
+    }
+
+    async function save(id) {
+      const section = document.querySelector(`[data-piece="${id}"]`);
+      const comment = document.querySelector(`[data-comment="${id}"]`).value;
+      const flag = document.querySelector(`[data-flag="${id}"]`).checked;
+      const reviewed = section.dataset.reviewed === "true";
+      await fetch(`/pieces/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comment, flag, reviewed })
+      });
+      const saved = document.querySelector(`[data-saved="${id}"]`);
+      if (saved) { saved.style.opacity = 1; setTimeout(() => saved.style.opacity = 0, 1200); }
+    }
+
+    // --- wiring ---------------------------------------------------------------
+    let timers = {};
+    document.querySelectorAll("[data-comment]").forEach(el => {
+      const id = el.dataset.comment;
+      el.addEventListener("input", () => {
+        paintPiece(el.closest("[data-piece]"));
+        clearTimeout(timers[id]);
+        timers[id] = setTimeout(() => save(id), 500);
+      });
+      el.addEventListener("blur", () => save(id));
+    });
+
+    document.querySelectorAll("[data-flag]").forEach(el => {
+      el.addEventListener("change", () => {
+        paintPiece(el.closest("[data-piece]"));
+        save(el.dataset.flag);
+      });
+    });
+
+    document.querySelectorAll("[data-review]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const section = btn.closest("[data-piece]");
+        section.dataset.reviewed = section.dataset.reviewed === "true" ? "false" : "true";
+        paintPiece(section);
+        save(section.dataset.piece);
+      });
+    });
+
+    document.getElementById("copy-btn").addEventListener("click", async () => {
+      const md = await (await fetch("/export.md")).text();
+      try {
+        await navigator.clipboard.writeText(md);
+        toast("Copied review to clipboard — paste it into your agent");
+      } catch {
+        toast("Copy failed — the review is also saved to export.md");
+      }
+    });
+
+    // --- keyboard navigation --------------------------------------------------
+    const sections = [...document.querySelectorAll("[data-piece]")];
+    let current = 0;
+
+    function focusPiece(index, { scroll = true } = {}) {
+      current = Math.max(0, Math.min(sections.length - 1, index));
+      const section = sections[current];
+      if (!section) return;
+      sections.forEach(s => s.classList.remove("piece-active"));
+      section.classList.add("piece-active");
+      setTimeout(() => section.classList.remove("piece-active"), 900);
+      if (scroll) section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    const help = document.getElementById("help-overlay");
+    function toggleHelp(show) { help.classList.toggle("hidden", show === false ? true : show === true ? false : undefined); }
+    document.querySelector("[data-help-close]").addEventListener("click", () => help.classList.add("hidden"));
+    help.addEventListener("click", e => { if (e.target === help) help.classList.add("hidden"); });
+
+    document.addEventListener("keydown", e => {
+      const typing = ["TEXTAREA", "INPUT"].includes(document.activeElement.tagName);
+      if (e.key === "Escape") {
+        if (!help.classList.contains("hidden")) return help.classList.add("hidden");
+        if (typing) document.activeElement.blur();
+        return;
+      }
+      if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      switch (e.key) {
+        case "j": e.preventDefault(); focusPiece(current + 1); break;
+        case "k": e.preventDefault(); focusPiece(current - 1); break;
+        case "c": {
+          e.preventDefault();
+          const box = sections[current].querySelector("[data-comment]");
+          box.focus();
+          box.setSelectionRange(box.value.length, box.value.length);
+          break;
+        }
+        case "g": {
+          e.preventDefault();
+          sections[current].querySelector("[data-review]").click();
+          break;
+        }
+        case "?": e.preventDefault(); help.classList.toggle("hidden"); break;
+      }
+    });
+
+    // --- server lifecycle -----------------------------------------------------
+    let heartbeat = setInterval(() => fetch("/heartbeat", { method: "POST", keepalive: true }), 5000);
+    fetch("/heartbeat", { method: "POST" });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) fetch("/heartbeat", { method: "POST" });
+    });
+    window.addEventListener("pagehide", () => navigator.sendBeacon("/bye"));
+
+    document.getElementById("done-btn").addEventListener("click", async () => {
+      let unreviewed = sections.filter(s => statusOf(s) === "unreviewed").length;
+      if (unreviewed > 0 && !confirm(`${unreviewed} piece(s) not yet reviewed. Finish anyway?`)) return;
+      clearInterval(heartbeat);
+      await fetch("/done", { method: "POST" });
+      document.getElementById("done-overlay").classList.remove("hidden");
+    });
+
+    updateCounts();
+  </script>
+</body>
+</html>
