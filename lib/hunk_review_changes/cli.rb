@@ -73,7 +73,7 @@ module HunkReviewChanges
     end
 
     def open_by_default?
-      ENV["REVIEW_WEB_NO_OPEN"] != "1"
+      ENV["HUNK_REVIEW_CHANGES_NO_OPEN"] != "1"
     end
 
     def print_version

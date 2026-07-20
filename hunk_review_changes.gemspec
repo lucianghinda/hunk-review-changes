@@ -17,12 +17,11 @@ Gem::Specification.new do |spec|
     every requested change. Ships a companion skill installable into Claude Code,
     Codex, Cursor, and OpenCode.
   DESC
-  spec.homepage = "https://github.com/ghinda/hunk-review-changes"
+  spec.homepage = "https://github.com/lucianghinda/hunk-review-changes"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
 
-  spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = "#{spec.homepage}/tree/main"
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
 

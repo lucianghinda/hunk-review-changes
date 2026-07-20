@@ -6,7 +6,7 @@ Your agent groups a diff into pieces — each a hunk with a plain-language what/
 
 Works with Claude Code, Codex, Cursor, and OpenCode.
 
-[![CI](https://github.com/ghinda/hunk-review-changes/actions/workflows/ci.yml/badge.svg)](https://github.com/ghinda/hunk-review-changes/actions/workflows/ci.yml)
+[![CI](https://github.com/lucianghinda/hunk-review-changes/actions/workflows/ci.yml/badge.svg)](https://github.com/lucianghinda/hunk-review-changes/actions/workflows/ci.yml)
 
 ## Installation
 
@@ -66,7 +66,7 @@ Your review persists as you go, so closing the tab loses nothing. Re-running the
 
 ## Skills marketplace
 
-The skill lives in its own repo, [hunk-review-changes-skills](https://github.com/ghinda/hunk-review-changes-skills), a marketplace that serves every supported agent. `hunk-review-changes install` uses it: it calls the Claude Code plugin CLI, and copies the skill into the directory Codex, Cursor, and OpenCode scan.
+The skill lives in its own repo, [hunk-review-changes-skills](https://github.com/lucianghinda/hunk-review-changes-skills), a marketplace that serves every supported agent. `hunk-review-changes install` uses it: it calls the Claude Code plugin CLI, and copies the skill into the directory Codex, Cursor, and OpenCode scan.
 
 ## Development
 
@@ -96,7 +96,7 @@ bundle exec rake release
 
 ## Contributing
 
-Bug reports and pull requests are welcome on [GitHub](https://github.com/ghinda/hunk-review-changes).
+Bug reports and pull requests are welcome on [GitHub](https://github.com/lucianghinda/hunk-review-changes).
 
 ## License
 

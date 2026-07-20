@@ -11,7 +11,7 @@ require_relative "hunk_review_changes/lifecycle"
 module HunkReviewChanges
   # The git repo that hosts the companion skill as a Claude Code plugin marketplace and
   # the source of truth for the skill across every agent the installer supports.
-  MARKETPLACE_REPO = "https://github.com/ghinda/hunk-review-changes-skills"
+  MARKETPLACE_REPO = "https://github.com/lucianghinda/hunk-review-changes-skills"
 
   # Names used across the marketplace manifest and the installed skill folder.
   MARKETPLACE_NAME = "hunk-review-changes-skills"

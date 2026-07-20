@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-07-20)
 
 - First release as a gem. Packages the browser review UI, all Ruby code, prebuilt CSS,
   and the bundled Atkinson Hyperlegible fonts.
